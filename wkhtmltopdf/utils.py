@@ -17,12 +17,31 @@ from .subprocess import check_output
 def _options_to_args(**options):
     """Converts ``options`` into a list of command-line arguments."""
     flags = []
+
+    # If we have an TOC options, store and remove as they need re-applying positionally
+    toc_options = {}
+    for toc_name in ('disable-dotted-lines', 'toc-header-text', 'toc-level-indentation', 'disable-toc-links',
+                     'toc-text-size-shrink'):
+        if toc_name in options:
+            toc_value = options[toc_name]
+            options.pop(toc_name, None)
+            toc_options[toc_name] = toc_value
+
     for name in sorted(options):
         value = options[name]
         if value is None:
             continue
         if  name in ('toc', 'cover',):
-            flags.append(name.replace('_', '-'))
+            flags.append(name)
+
+            # if we have a TOC option, then also apply any other TOC options as these must be applied positionally
+            if 'toc' == name and toc_options:
+                for toc_name in toc_options:
+                    toc_value = toc_options[toc_name]
+                    flags.append('--' + toc_name)
+                    if toc_value is not True:
+                        flags.append(unicode(toc_value))
+
         else:
             flags.append('--' + name.replace('_', '-'))
         if value is not True:
