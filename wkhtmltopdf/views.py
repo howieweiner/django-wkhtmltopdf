@@ -148,7 +148,7 @@ class PDFTemplateResponse(TemplateResponse, PDFResponse):
                     prefix='wkhtmltopdf', suffix='.html',
                     delete=(not debug)
                 )
-                cover_file = cover_file.name
+                cover_filename = cover_file.name
 
             return self.convert_to_pdf(filename=input_file.name,
                                        header_filename=header_filename,
