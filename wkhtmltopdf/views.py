@@ -48,7 +48,7 @@ class PDFTemplateResponse(TemplateResponse, PDFResponse):
                  status=None, content_type=None, current_app=None,
                  filename=None, show_content_in_browser=None,
                  header_template=None, footer_template=None,
-                 cmd_options=None, *args, **kwargs):
+                 cover_template=None, cmd_options=None, *args, **kwargs):
 
         super(PDFTemplateResponse, self).__init__(request=request,
                                                   template=template,
@@ -62,6 +62,7 @@ class PDFTemplateResponse(TemplateResponse, PDFResponse):
 
         self.header_template = header_template
         self.footer_template = footer_template
+        self.cover_template = cover_template
 
         if cmd_options is None:
             cmd_options = {}
@@ -91,15 +92,17 @@ class PDFTemplateResponse(TemplateResponse, PDFResponse):
             raise
 
     def convert_to_pdf(self, filename,
-                       header_filename=None, footer_filename=None):
+                       header_filename=None, footer_filename=None, cover_filename=None):
         cmd_options = self.cmd_options.copy()
-        # Clobber header_html and footer_html only if filenames are
+        # Clobber header_html,  footer_html and cover only if filenames are
         # provided. These keys may be in self.cmd_options as hardcoded
         # static files.
         if header_filename is not None:
             cmd_options['header_html'] = header_filename
         if footer_filename is not None:
             cmd_options['footer_html'] = footer_filename
+        if cover_filename is not None:
+            cmd_options['cover'] = cover_filename
         return wkhtmltopdf(pages=[filename], **cmd_options)
 
     @property
@@ -113,8 +116,8 @@ class PDFTemplateResponse(TemplateResponse, PDFResponse):
         """
         debug = getattr(settings, 'WKHTMLTOPDF_DEBUG', settings.DEBUG)
 
-        input_file = header_file = footer_file = None
-        header_filename = footer_filename = None
+        input_file = header_file = footer_file = cover_file = None
+        header_filename = footer_filename = cover_filename = None
 
         try:
             input_file = self.render_to_temporary_file(
@@ -139,12 +142,21 @@ class PDFTemplateResponse(TemplateResponse, PDFResponse):
                 )
                 footer_filename = footer_file.name
 
+            if self.cover_template:
+                cover_file = self.render_to_temporary_file(
+                    template_name=self.cover_template,
+                    prefix='wkhtmltopdf', suffix='.html',
+                    delete=(not debug)
+                )
+                cover_file = cover_file.name
+
             return self.convert_to_pdf(filename=input_file.name,
                                        header_filename=header_filename,
-                                       footer_filename=footer_filename)
+                                       footer_filename=footer_filename,
+                                       cover_filename=cover_filename)
         finally:
             # Clean up temporary files
-            for f in filter(None, (input_file, header_file, footer_file)):
+            for f in filter(None, (input_file, header_file, footer_file, cover_file)):
                 f.close()
 
 
@@ -157,10 +169,11 @@ class PDFTemplateView(TemplateView):
     # Send file as attachement. If True render content in the browser.
     show_content_in_browser = False
 
-    # Filenames for the content, header, and footer templates.
+    # Filenames for the content, header, footer and cover templates.
     template_name = None
     header_template = None
     footer_template = None
+    cover_template = None
 
     # TemplateResponse classes for PDF and HTML
     response_class = PDFTemplateResponse
@@ -216,6 +229,7 @@ class PDFTemplateView(TemplateView):
                 show_content_in_browser=self.show_content_in_browser,
                 header_template=self.header_template,
                 footer_template=self.footer_template,
+                cover_template=self.cover_template,
                 cmd_options=cmd_options,
                 **response_kwargs
             )
