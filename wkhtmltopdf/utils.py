@@ -21,7 +21,10 @@ def _options_to_args(**options):
         value = options[name]
         if value is None:
             continue
-        flags.append('--' + name.replace('_', '-'))
+        if  name == 'toc':
+            flags.append(name.replace('_', '-'))
+        else:
+            flags.append('--' + name.replace('_', '-'))
         if value is not True:
             flags.append(unicode(value))
     return flags
