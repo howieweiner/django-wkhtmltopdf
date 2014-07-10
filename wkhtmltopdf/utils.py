@@ -31,7 +31,7 @@ def _options_to_args(**options):
         options.pop('toc', None)
 
         for toc_name in ('disable-dotted-lines', 'toc-header-text', 'toc-level-indentation', 'disable-toc-links',
-                         'toc-text-size-shrink'):
+                         'toc-text-size-shrink', 'xsl_style_sheet'):
             if toc_name in options:
                 toc_value = options[toc_name]
                 options.pop(toc_name, None)
@@ -58,7 +58,7 @@ def _options_to_args(**options):
             if  'toc' == toc_name:
                 flags.append(toc_name)
             else:
-                flags.append('--' + toc_name)
+                flags.append('--' + toc_name.replace('_', '-'))
             if toc_value is not True:
                 flags.append(unicode(toc_value))
     return flags
